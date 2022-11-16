@@ -7,6 +7,8 @@ export const ACTIONS = {
   CLEAR: "clear",
   BACKSPACE: "backspace",
   OPERATION: "operation",
+  OPEN_BRACKET: 'openBracket',
+  CLOSE_BRACKET: 'closeBracket',
   TOTAL: "total",
 };
 
