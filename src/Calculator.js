@@ -1,17 +1,9 @@
-import React, { useReducer } from "react";
+import React, { useReducer, useState } from "react";
 import NumButton from "./NumButton";
 import OperationButton from "./OperationButton";
 import { ACTIONS } from "./App";
 
 export default function Calculator() {
-  // const ACTIONS = {
-  //   INPUT_DIGIT: "input",
-  //   CLEAR: "clear",
-  //   BACKSPACE: "backspace",
-  //   OPERATION: "operation",
-  //   TOTAL: "total",
-  // };
-
   const {
     INPUT_DIGIT,
     CLEAR,
@@ -30,7 +22,10 @@ export default function Calculator() {
     replace: false,
     outsideNum: null,
     outsideOp: null,
+    inBrackets: false,
   };
+
+  const [bracketTotal, setBracketTotal] = useState(null);
 
   function calcReducer(state, { type, value }) {
     console.log(type, value);
@@ -49,10 +44,11 @@ export default function Calculator() {
         }
         if (value === "." && state.current.includes(".")) {
           newState = state;
-        } else if (state.negative === true) {
+        } else if (state.negative == true && state.current == "-") {
           newState = {
             ...state,
-            current: -Math.abs(Number(value.num)),
+            current: `-${value.num}`,
+            negative: false,
           };
         } else {
           newState = {
@@ -67,10 +63,17 @@ export default function Calculator() {
           state.previous == null &&
           value.operation == "-"
         ) {
-          console.log("we have a negative int!");
           newState = {
             ...state,
             negative: true,
+            current: "-",
+          };
+          //3 * -2
+        } else if (state.operation && value.operation == "-") {
+          newState = {
+            ...state,
+            negative: true,
+            current: "-",
           };
         } else if (state.current == null && state.previous == null) {
           newState = state;
@@ -115,15 +118,18 @@ export default function Calculator() {
             current: state.current.slice(0, -1),
           };
         }
+        break;
       case OPEN_BRACKET:
         // 3 + 3(1+2)
+        console.log("brackets are open");
         if (state.current && state.operation && state.previous) {
           newState = {
             ...state,
             outsideNum: evaluate(state),
-            current: null,
+            current: "(",
             operation: null,
             outsideOp: "*",
+            inBrackets: true,
           };
           // 3 + (1 + 3)
         } else if (
@@ -135,8 +141,10 @@ export default function Calculator() {
             ...state,
             outsideOp: state.operation,
             outsideNum: state.previous,
+            current: "(",
             previous: null,
             operation: null,
+            inBrackets: true,
           };
           // (1 + 3)
         } else if (
@@ -146,6 +154,8 @@ export default function Calculator() {
         ) {
           newState = {
             ...state,
+            current: "(",
+            inBrackets: true,
           };
           // null * (1 + 3)
         } else if (
@@ -155,8 +165,10 @@ export default function Calculator() {
           newState = {
             ...state,
             operation: null,
+            current: "(",
+            inBrackets: true,
           };
-          // 3 x^y (1 + 3) || 3(1+3)
+          // 3 x^y (1 + 3)
         } else if (
           state.previous &&
           state.operation &&
@@ -166,39 +178,102 @@ export default function Calculator() {
             ...state,
             outsideOp: state.operation,
             outsideNum: state.previous,
+            current: "(",
             previous: null,
+            inBrackets: true,
+          };
+          // 3(1+3)
+        } else if (
+          state.current &&
+          state.previous == null &&
+          state.operation == null
+        ) {
+          newState = {
+            ...state,
+            outsideNum: state.current,
+            current: "(",
+            inBrackets: true,
           };
           // -(1 + 3)
         } else if (state.previous === null && state.operation === "-") {
           newState = {
             ...state,
             outsideOp: "-",
+            current: "(",
+            inBrackets: true,
           };
         }
         break;
       case CLOSE_BRACKET:
-      // 3 + (1 + 3)
-      // (1 + 3)
-      // 3 x^y (1 + 3) || 3(1+3)
-      // -(1 + 3)
+        // 3 + (1 + 3) ||  3 x^y (1 + 3)
+        if (state.outsideOp && state.outsideNum) {
+          newState = {
+            ...state,
+            previous: state.outsideNum,
+            current: evaluate(state),
+            operation: state.outsideOp,
+            outsideNum: null,
+            outsideOp: null,
+            inBrackets: false,
+          };
+          // (1 + 3)
+        } else if (state.outsideOp == null && state.outsideNum == null) {
+          newState = {
+            ...state,
+            inBrackets: false,
+          };
+          // 3(3)
+        } else if (
+          state.outsideNum &&
+          state.outsideOp == null &&
+          state.previous == null
+        ) {
+          newState = {
+            ...state,
+            previous: state.outsideNum,
+            current: state.current.slice(1),
+            operation: "*",
+            inBrackets: false,
+            outsideNum: null,
+          };
+          // -(1 + 3)
+        } else if (state.outsideNum == null && state.outsideOp == "-") {
+          newState = {
+            ...state,
+            current: -Math.abs(evaluate(state)),
+            inBrackets: false,
+          };
+          // 2(1+3)
+        } else if (
+          state.outsideNum &&
+          state.outsideOp == null &&
+          state.operation
+        ) {
+          newState = {
+            ...state,
+            current: state.current.slice(1),
+            operation: "*",
+            previous: state.outsideNum,
+            outsideNum: null,
+          };
+        }
+        break;
       case CLEAR:
         newState = initState;
         break;
       case TOTAL:
-        if (
+        if (state.negative == true) {
+          newState = {
+            ...state,
+            previous: state.current,
+            negative: false,
+          };
+        } else if (
           state.operation == null ||
           state.current == null ||
           state.previous == null
         ) {
           newState = state;
-        } else if (
-          (state.operation == null && state.previous == null) ||
-          Number(state.current) < 0
-        ) {
-          newState = {
-            ...state,
-            previous: state.current,
-          };
         } else {
           newState = {
             ...state,
@@ -218,10 +293,14 @@ export default function Calculator() {
   const [state, dispatch] = useReducer(calcReducer, initState);
 
   function evaluate(state) {
-    const prev = parseFloat(state.previous);
+    let prev;
+    if (state.previous.startsWith("(")) {
+      prev = parseFloat(state.previous.slice(1));
+    } else {
+      prev = parseFloat(state.previous);
+    }
     const curr = parseFloat(state.current);
     if (isNaN(prev) || isNaN(curr)) return "";
-    if (isNaN(prev) && curr < 0) return curr.toString();
     let computation = "";
     switch (state.operation) {
       case "+":
@@ -239,18 +318,12 @@ export default function Calculator() {
       case "x^y":
         computation = prev ** curr;
     }
+    if (computation.toString().includes(".")) {
+      let decimals = computation.toString().split(".");
+      computation =
+        decimals.length > 14 ? Math.round(computation * 1000000) : computation;
+    }
     return computation.toString();
-  }
-
-  const Formatter = new Intl.NumberFormat("en-us", {
-    maximumFractionDigits: 0,
-  });
-
-  function formatOp(value) {
-    if (value == null) return;
-    const [integer, decimal] = value.split(".");
-    if (decimal == null) return Formatter.format(integer);
-    return `${Formatter.format(integer)}.${decimal}`;
   }
 
   console.log(state);
@@ -258,10 +331,16 @@ export default function Calculator() {
   return (
     <div className="calc--box">
       <div className="display">
-        <div className="display--previous">
-          {formatOp(state.previous)} {state.operation}
+        <div className="display--top">
+          <div className="display--outside">
+            {state.outsideNum}
+            {state.outsideOp}
+          </div>
+          <div className="display--previous">
+            {state.previous} {state.operation}
+          </div>
         </div>
-        <div className="display--current">{formatOp(state.current)}</div>
+        <div className="display--current">{state.current}</div>
       </div>
       <div className="button--box">
         <button
@@ -282,20 +361,28 @@ export default function Calculator() {
         </button>
         <OperationButton operation="x^y" name="exponent" dispatch={dispatch} />
         <OperationButton operation="+" name="add" dispatch={dispatch} />
-        <OperationButton
+        <button
           operation="("
-          name="openParenthesis"
-          className="other"
-        />
+          name="openBracket"
+          className="button operator other"
+          onClick={() => dispatch({ type: OPEN_BRACKET })}
+          disabled={state.inBrackets}
+        >
+          (
+        </button>
         <NumButton dispatch={dispatch} num={"7"} />
         <NumButton dispatch={dispatch} num={"8"} />
         <NumButton dispatch={dispatch} num={"9"} />
         <OperationButton operation="-" name="subtract" dispatch={dispatch} />
-        <OperationButton
+        <button
           operation=")"
-          name="closedParenthesis"
-          className="other"
-        />
+          name="closeBracket"
+          className="button operator other"
+          onClick={() => dispatch({ type: CLOSE_BRACKET })}
+          disabled={!state.inBrackets}
+        >
+          )
+        </button>
         <NumButton dispatch={dispatch} num={"4"} />
         <NumButton dispatch={dispatch} num={"5"} />
         <NumButton dispatch={dispatch} num={"6"} />
