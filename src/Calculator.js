@@ -38,12 +38,15 @@ export default function Calculator() {
             current: value,
             replace: false,
           };
-        }
-        if (value === "0" && state.current === "0") {
-          newState = state;
-        }
-        if (value === "." && state.current.includes(".")) {
-          newState = state;
+        } else if (value.num === "0" && state.current === "0") {
+          newState = {
+            ...state,
+            current: "0"
+          };
+        } else if (value.num === "." && state.current?.includes(".")) {
+          newState =  {
+            ...state
+          }
         } else if (state.negative == true && state.current == "-") {
           newState = {
             ...state,
@@ -75,8 +78,15 @@ export default function Calculator() {
             negative: true,
             current: "-",
           };
+          //- - -
+        } else if (state.negative == true && state.current == "-" && state.previous == null){
+          newState = {
+            ...state,
+          }
         } else if (state.current == null && state.previous == null) {
-          newState = state;
+          newState = {
+            ...state
+          }
         } else if (state.current == null) {
           newState = {
             ...state,
@@ -130,6 +140,7 @@ export default function Calculator() {
             operation: null,
             outsideOp: "*",
             inBrackets: true,
+            previous: null
           };
           // 3 + (1 + 3)
         } else if (
@@ -182,7 +193,7 @@ export default function Calculator() {
             previous: null,
             inBrackets: true,
           };
-          // 3(1+3)
+          // 3(1 + 3)
         } else if (
           state.current &&
           state.previous == null &&
@@ -205,8 +216,19 @@ export default function Calculator() {
         }
         break;
       case CLOSE_BRACKET:
-        // 3 + (1 + 3) ||  3 x^y (1 + 3)
-        if (state.outsideOp && state.outsideNum) {
+        // 3 x^y (3) 
+        if ( state.outsideNum && state.outsideOp == "x^y" && state.operation == null && state.current){
+          newState = {
+            ...state,
+            current: state.current.slice(1),
+            previous: state.outsideNum,
+            operation: state.outsideOp,
+            outsideNum: null,
+            outsideOp: null,
+            inBrackets: false
+          }
+          // 3 + (1 + 3) ||  3 x^y (1 + 3)
+        } else if (state.outsideOp && state.outsideNum) {
           newState = {
             ...state,
             previous: state.outsideNum,
@@ -217,7 +239,7 @@ export default function Calculator() {
             inBrackets: false,
           };
           // (1 + 3)
-        } else if (state.outsideOp == null && state.outsideNum == null) {
+        } else if (state.outsideOp == null && state.outsideNum == null && state.outsideOp == null) {
           newState = {
             ...state,
             inBrackets: false,
@@ -237,21 +259,27 @@ export default function Calculator() {
             outsideNum: null,
           };
           // -(1 + 3)
-        } else if (state.outsideNum == null && state.outsideOp == "-") {
+        } else if (state.outsideOp == null && state.outsideNum == "-") {
           newState = {
             ...state,
-            current: -Math.abs(evaluate(state)),
+            // current: -Math.abs(evaluate(state)),
+            current: `-${evaluate(state)}`,
             inBrackets: false,
+            outsideOp: null,
+            previous: null,
+            operation: null,
+            negative: false,
+            outsideNum: null
           };
           // 2(1+3)
-        } else if (
+        } else  if (
           state.outsideNum &&
           state.outsideOp == null &&
           state.operation
         ) {
           newState = {
             ...state,
-            current: state.current.slice(1),
+            current: evaluate(state),
             operation: "*",
             previous: state.outsideNum,
             outsideNum: null,
