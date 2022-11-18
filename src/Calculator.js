@@ -228,7 +228,6 @@ export default function Calculator() {
           newState = {
             ...state,
             previous: state.outsideNum,
-            // current: state.current.slice(1),
             current: state.current,
             operation: "*",
             inBrackets: false,
