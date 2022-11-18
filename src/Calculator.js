@@ -1,4 +1,4 @@
-import React, { useReducer, useState } from "react";
+import React, { useReducer } from "react";
 import NumButton from "./NumButton";
 import OperationButton from "./OperationButton";
 import { ACTIONS } from "./App";
@@ -24,11 +24,8 @@ export default function Calculator() {
     outsideOp: null,
     inBrackets: false,
   };
-
-  const [bracketTotal, setBracketTotal] = useState(null);
-
+  //some if statements below have comments indicating the type of equation they are intended to handle
   function calcReducer(state, { type, value }) {
-    console.log(type, value);
     let newState;
     switch (type) {
       case INPUT_DIGIT:
@@ -41,12 +38,12 @@ export default function Calculator() {
         } else if (value.num === "0" && state.current === "0") {
           newState = {
             ...state,
-            current: "0"
+            current: "0",
           };
         } else if (value.num === "." && state.current?.includes(".")) {
-          newState =  {
-            ...state
-          }
+          newState = {
+            ...state,
+          };
         } else if (state.negative == true && state.current == "-") {
           newState = {
             ...state,
@@ -61,11 +58,7 @@ export default function Calculator() {
         }
         break;
       case OPERATION:
-        if (
-          state.current == null &&
-          state.previous == null &&
-          value.operation == "-"
-        ) {
+        if (!state.current && !state.previous && value.operation == "-") {
           newState = {
             ...state,
             negative: true,
@@ -79,20 +72,24 @@ export default function Calculator() {
             current: "-",
           };
           //- - -
-        } else if (state.negative == true && state.current == "-" && state.previous == null){
+        } else if (
+          state.negative == true &&
+          state.current == "-" &&
+          !state.previous
+        ) {
           newState = {
             ...state,
-          }
-        } else if (state.current == null && state.previous == null) {
+          };
+        } else if (!state.current && !state.previous) {
           newState = {
-            ...state
-          }
-        } else if (state.current == null) {
+            ...state,
+          };
+        } else if (!state.current) {
           newState = {
             ...state,
             operation: value.operation,
           };
-        } else if (state.previous == null) {
+        } else if (!state.previous) {
           newState = {
             ...state,
             operation: value.operation,
@@ -115,7 +112,7 @@ export default function Calculator() {
             replace: false,
             current: null,
           };
-        } else if (state.current == null) {
+        } else if (!state.current) {
           newState = state;
         } else if (state.current.length === 1) {
           newState = {
@@ -130,8 +127,7 @@ export default function Calculator() {
         }
         break;
       case OPEN_BRACKET:
-        // 3 + 3(1+2)
-        console.log("brackets are open");
+        // 3 + 3(1 + 2)
         if (state.current && state.operation && state.previous) {
           newState = {
             ...state,
@@ -140,14 +136,10 @@ export default function Calculator() {
             operation: null,
             outsideOp: "*",
             inBrackets: true,
-            previous: null
+            previous: null,
           };
           // 3 + (1 + 3)
-        } else if (
-          state.operation &&
-          state.previous &&
-          state.current === null
-        ) {
+        } else if (state.operation && state.previous && !state.current) {
           newState = {
             ...state,
             outsideOp: state.operation,
@@ -158,47 +150,14 @@ export default function Calculator() {
             inBrackets: true,
           };
           // (1 + 3)
-        } else if (
-          state.current === null &&
-          state.previous === null &&
-          state.operation === null
-        ) {
+        } else if (!state.current && !state.previous && !state.operation) {
           newState = {
             ...state,
             current: "(",
-            inBrackets: true,
-          };
-          // null * (1 + 3)
-        } else if (
-          state.operation === "/" ||
-          ("*" && state.previous === null && state.current === null)
-        ) {
-          newState = {
-            ...state,
-            operation: null,
-            current: "(",
-            inBrackets: true,
-          };
-          // 3 x^y (1 + 3)
-        } else if (
-          state.previous &&
-          state.operation &&
-          state.current === null
-        ) {
-          newState = {
-            ...state,
-            outsideOp: state.operation,
-            outsideNum: state.previous,
-            current: "(",
-            previous: null,
             inBrackets: true,
           };
           // 3(1 + 3)
-        } else if (
-          state.current &&
-          state.previous == null &&
-          state.operation == null
-        ) {
+        } else if (state.current && !state.previous && !state.operation) {
           newState = {
             ...state,
             outsideNum: state.current,
@@ -206,7 +165,7 @@ export default function Calculator() {
             inBrackets: true,
           };
           // -(1 + 3)
-        } else if (state.previous === null && state.operation === "-") {
+        } else if (!state.previous && state.operation === "-") {
           newState = {
             ...state,
             outsideOp: "-",
@@ -216,8 +175,13 @@ export default function Calculator() {
         }
         break;
       case CLOSE_BRACKET:
-        // 3 x^y (3) 
-        if ( state.outsideNum && state.outsideOp == "x^y" && state.operation == null && state.current){
+        // 3 x^y (3)
+        if (
+          state.outsideNum &&
+          state.outsideOp == "x^y" &&
+          !state.operation &&
+          state.current
+        ) {
           newState = {
             ...state,
             current: state.current.slice(1),
@@ -225,8 +189,23 @@ export default function Calculator() {
             operation: state.outsideOp,
             outsideNum: null,
             outsideOp: null,
-            inBrackets: false
-          }
+            inBrackets: false,
+          };
+          // 10/(2)
+        } else if (
+          state.outsideOp &&
+          state.outsideNum &&
+          !state.previous &&
+          !state.operation
+        ) {
+          newState = {
+            ...state,
+            previous: state.outsideNum,
+            operation: state.outsideOp,
+            outsideNum: null,
+            outsideOp: null,
+            inBrackets: false,
+          };
           // 3 + (1 + 3) ||  3 x^y (1 + 3)
         } else if (state.outsideOp && state.outsideNum) {
           newState = {
@@ -239,50 +218,53 @@ export default function Calculator() {
             inBrackets: false,
           };
           // (1 + 3)
-        } else if (state.outsideOp == null && state.outsideNum == null && state.outsideOp == null) {
+        } else if (!state.outsideOp && !state.outsideNum && !state.outsideOp) {
           newState = {
             ...state,
             inBrackets: false,
           };
           // 3(3)
-        } else if (
-          state.outsideNum &&
-          state.outsideOp == null &&
-          state.previous == null
-        ) {
+        } else if (state.outsideNum && !state.outsideOp && !state.previous) {
           newState = {
             ...state,
             previous: state.outsideNum,
-            current: state.current.slice(1),
+            // current: state.current.slice(1),
+            current: state.current,
             operation: "*",
             inBrackets: false,
             outsideNum: null,
           };
           // -(1 + 3)
-        } else if (state.outsideOp == null && state.outsideNum == "-") {
+        } else if (!state.outsideOp && state.outsideNum == "-") {
           newState = {
             ...state,
-            // current: -Math.abs(evaluate(state)),
             current: `-${evaluate(state)}`,
             inBrackets: false,
             outsideOp: null,
             previous: null,
             operation: null,
             negative: false,
-            outsideNum: null
+            outsideNum: null,
           };
           // 2(1+3)
-        } else  if (
-          state.outsideNum &&
-          state.outsideOp == null &&
-          state.operation
-        ) {
+        } else if (state.outsideNum && !state.outsideOp && state.operation) {
           newState = {
             ...state,
             current: evaluate(state),
             operation: "*",
             previous: state.outsideNum,
             outsideNum: null,
+          };
+          // 3 + (1 + 3) ||  3 x^y (1 + 3)
+        } else if (state.outsideOp && state.outsideNum) {
+          newState = {
+            ...state,
+            previous: state.outsideNum,
+            current: evaluate(state),
+            operation: state.outsideOp,
+            outsideNum: null,
+            outsideOp: null,
+            inBrackets: false,
           };
         }
         break;
@@ -296,11 +278,7 @@ export default function Calculator() {
             previous: state.current,
             negative: false,
           };
-        } else if (
-          state.operation == null ||
-          state.current == null ||
-          state.previous == null
-        ) {
+        } else if (!state.operation || !state.current || !state.previous) {
           newState = state;
         } else {
           newState = {
@@ -322,12 +300,17 @@ export default function Calculator() {
 
   function evaluate(state) {
     let prev;
-    if (state.previous.startsWith("(")) {
+    let curr;
+    if (state.previous?.startsWith("(")) {
       prev = parseFloat(state.previous.slice(1));
     } else {
       prev = parseFloat(state.previous);
     }
-    const curr = parseFloat(state.current);
+    if (state.current?.startsWith("(")) {
+      curr = parseFloat(state.current.slice(1));
+    } else {
+      curr = parseFloat(state.current);
+    }
     if (isNaN(prev) || isNaN(curr)) return "";
     let computation = "";
     switch (state.operation) {
@@ -354,15 +337,13 @@ export default function Calculator() {
     return computation.toString();
   }
 
-  console.log(state);
-
   return (
     <div className="calc--box">
       <div className="display">
         <div className="display--top">
           <div className="display--outside">
             {state.outsideNum}
-            {state.outsideOp}
+            {state.outsideOp && ` ${state.outsideOp}`}
           </div>
           <div className="display--previous">
             {state.previous} {state.operation}

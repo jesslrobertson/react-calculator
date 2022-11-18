@@ -8,6 +8,8 @@
   --light: rgb(173, 234, 251);
   --light-focus: rgb(189, 239, 253);
   --light-text: #b9d9e2;
+  --display-font:'Thasadith', sans-serif;
+  --button-font:'Open Sans', sans-serif;
 }
 
 *,
@@ -57,10 +59,12 @@ body {
   color: #fafafa;
   font-size: 3rem;
   padding: 1rem;
+  justify-content: space-between;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
   background-color: var(--transparent);
   overflow-y: scroll;
+  font-family: var(--display-font);
 }
 
 .display--top {
@@ -95,6 +99,7 @@ body {
   color: var(--dark);
   opacity: 100%;
   text-align: center;
+  font-family: var(--button-font);
 }
 
 .button:disabled {
